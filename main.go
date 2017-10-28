@@ -5,6 +5,8 @@ import "strconv"
 import "encoding/json"
 import "io/ioutil"
 import "log"
+import "strings"
+import "math"
 
 type Memory struct{
 	Memories []MemoryOperation
@@ -15,64 +17,68 @@ type MemoryOperation struct {
     Operations []string
 }
 
-var operator = [...]string{"+","-","*","/"}
+var operators = [...]string{"+","-","*","/"}
 var memoryPath = "memory.json"
 
 func main() {
-	var element1 float64
-	fmt.Printf("Premier element:")
-    fmt.Scanf("%f\n", &element1)
-		var element2 float64
-	fmt.Printf("\nSecond element:")
-    fmt.Scanf("%f\n", &element2)
+	var item1 float64
+	fmt.Printf("Premier item:")
+    fmt.Scanf("%f\n", &item1)
+		var item2 float64
+	fmt.Printf("\nSecond item:")
+    fmt.Scanf("%f\n", &item2)
 	var goal float64
 	fmt.Printf("\nObjectif:")
     fmt.Scanf("%f\n", &goal)
-	var result string = searchSolution(element1,element2,goal)
+	var result string = searchSolution(item1,item2,goal)
     fmt.Printf(result + "=" + floatToString(goal))
+	//fmt.Printf("\n%d", countPossibility(4))
 }
 
-func calcul (element1 float64, element2 float64, oneOperator string) (result float64){
+func calcul (item1 float64, item2 float64, oneOperator string) (result float64){
 	switch oneOperator {
 	case "+":
-	result = element1 + element2
+	result = item1 + item2
 	case "-":
-	result = element1 - element2
+	result = item1 - item2
 	case "/":
-	if element2 == 0 {
+	if item2 == 0 {
 		result = 0
 	}else{
-		result = element1 / element2
+		result = item1 / item2
 	}
 	case "*":
-	result = element1 * element2
+	result = item1 * item2
 	}
 	return 
 }
 
-func searchSolution(element1 float64, element2 float64, goal float64) (operation string){
-	op, success:= searchMemorySolution(element1, element2, goal)
+func searchSolution(item1 float64, item2 float64, goal float64) (operation string){
+	op, success:= searchMemorySolution(item1, item2, goal)
 	if success == true {
 		operation = op 
 		return
 	}
-	for _, oneOperator := range operator {
-        var result float64 = calcul(element1, element2, oneOperator)
-		if result == goal{
-			operation = floatToString(element1) + oneOperator + floatToString(element2)
-			// Mise en memoire
-			success := learnOperation(operation, goal)
-			if success == false{
-				fmt.Printf("Erreur de memorisation")
+	for _, oneOperator := range operators {
+		for i := 0; i< 2; i++{
+		    var result float64 = calcul(item1, item2, oneOperator)
+			if result == goal{
+				operation = floatToString(item1) + oneOperator + floatToString(item2)
+				// Mise en memoire
+				success := learnOperation(operation, goal)
+				if success == false{
+					fmt.Printf("Erreur de memorisation")
+				}
+				return
 			}
-			return
+			changePosition(&item1, &item2)
 		}
     }
 	operation = "Erreur"
 	return
 }
 
-func searchMemorySolution(element1 float64, element2 float64, goal float64)(operation string, success bool){
+func searchMemorySolution(item1 float64, item2 float64, goal float64)(operation string, success bool){
 	success = false
 	operation = ""
 	var data Memory
@@ -87,7 +93,15 @@ func searchMemorySolution(element1 float64, element2 float64, goal float64)(oper
 		for i := 0; i < len(memoriesOperation); i++{
 			if float64(memoriesOperation[i].Result) == goal{
 				for _,memoryOperation := range memoriesOperation[i].Operations{
-					if floatToString(element1) == string(memoryOperation[0]) && floatToString(element2) == string(memoryOperation[len(memoryOperation)-1]){
+					var operatorIndex int
+					for _, oneOperator := range operators {
+						operatorIndex = strings.Index(memoryOperation, oneOperator)
+						if operatorIndex != -1 {
+							break
+						}
+					}
+					split := strings.Split(string(memoryOperation), string(memoryOperation[operatorIndex]))
+					if floatToString(item1) == split[0] && floatToString(item2) == split[1]{
 						operation = memoryOperation
 						success = true
 						return
@@ -150,6 +164,21 @@ func learnOperation(operation string, result float64)(success bool){
 		success = false
 	}
 	return
+}
+
+func countPossibility(numberItem int)(result int){
+	var factorial int = 1
+	for i:=1; i<=numberItem; i++{
+		factorial *= i
+	}
+	result = int(math.Pow(float64(len(operators)), float64(numberItem-1))* float64(factorial))
+	return
+}
+
+func changePosition(item1 * float64,item2 * float64){
+	var temp float64 = *item1
+	*item1 = *item2
+	*item2 = temp
 }
 
 func floatToString(value float64)(stringConvert string){
